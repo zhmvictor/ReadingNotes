@@ -161,3 +161,424 @@ class MyObject implements Comparable{
 
 ---
 ## 第三章 数组
+
+---
+## 第四章 栈
+
+遵循后进先出(LIFO)原则的有序集合。
+
+### 基于数组的栈
+
+```
+class Stack {
+    constructor() {
+        // 用数组保存栈内的元素
+        this.items = [];
+    }
+    // 添加新元素到栈顶
+    push(element) {
+        this.items.push(element);
+    }
+    // 移除栈顶元素，同时返回被移除的元素
+    pop() {
+        return this.items.pop();
+    }
+    // 返回栈顶元素，但不对栈做任何修改
+    peek() {
+        return this.items[this.items.length - 1];
+    }
+    // 判断栈是否为空，是为true，否则为false
+    isEmpty() {
+        return this.items.length === 0;
+    }
+    // 移除栈内所有元素(清空栈)
+    clear() {
+        this.items = [];
+    }
+    // 返回栈内元素的个数
+    size() {
+        return this.items.length;
+    }
+}
+```
+
+### 基于对象的栈
+
+```
+class Stack {
+    constructor() {
+        this.count = 0; // 记录栈的大小
+        this.items = {}; // 保存栈内元素
+    }
+    // 向栈中插入元素
+    push(element) {
+        this.items[this.count] = element;
+        this.count++;
+    }
+    // 判断栈是否为空
+    isEmpty(){
+        return this.count === 0;
+    }
+    // 返回栈的大小
+    size() {
+        return this.count;
+    }
+    // 从栈中弹出元素
+    pop() {
+        if(this.isEmpty()){
+            return undefined;
+        }
+        this.count--;
+        // 将栈顶值保存到一个变量
+        const result = this.items[this.count];
+        // 删除栈顶元素
+        delete this.items[this.count];
+        // 返回栈顶元素
+        return result;
+    }
+    // 查看栈顶元素
+    peek() {
+        if(this.isEmpty()){
+            return undefined;
+        }
+        return this.items[this.count - 1];
+    }
+    // 清空栈
+    clear() {
+        this.count = 0;
+        this.items = {};
+    }
+    // toString 方法打印栈内元素
+    toString() {
+        if(this.isEmpty()){
+            return '';
+        }
+        let objString = `${this.items[0]}`;
+        for(let i = 1; i < this.count; i++){
+            objString = `${objString},${this.items[i]}`;
+        }
+        return objString;
+    }
+}
+```
+
+### 基于对象的栈与基于数组的栈比较
+
+- 使用数组时，大部分方法的时间复杂度是O(n)，并且数组是元素的一个有序集合，为了保证元素排列有序，会占用更多的内存空间。
+- 使用对象可以直接获取元素，占用较少的内存空间，并且仍能保证所有元素按照我们的需要排序。
+
+### 保护数据结构内部元素 --- 使属性变为私有
+#### 下划线命名约定
+
+默认约定，不能真正私有。
+```
+class Stack {
+    constructor() {
+        this._count = 0;
+        this._items = {};
+    }
+}
+```
+#### Symbol限定作用域
+
+使用`Object.getOwnPropertySymbols()`能够取到类里面声明的所有`Symbol`属性，不能真正私有。
+
+```
+const _items = Symbol('stackItems');
+class Stack {
+    constructor() {
+        this[_items] = [];
+    }
+}
+```
+#### WeakMap
+
+可以实现真正私有，但是该方法代码可读性不强，并且在扩展该类时无法继承私有属性。
+```
+const items = new WeakMap();
+class Stack {
+    constructor() {
+        items.set(this, []);
+    }
+    push(element) {
+        const s = items.get(this);
+        s.push(element);
+    }
+    pop() {
+        const s = items.get(this);
+        const r = s.pop();
+        return r;
+    }
+}
+```
+### 用栈解决问题
+#### 进制转换算法
+
+```
+// decNumber: 十进制数， base: 其他进制基数
+function baseConverter(decNumber, base) {
+    const remStack = new Stack();
+    // 进制字母表，十六进制以后0~9对应A~F
+    const digits = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let number = decNumber;
+    let rem;
+    let baseString = ''; // 转换后的进制字符串
+    // 转换范围是2~36进制
+    if(!(base >= 2 && base <= 36)){
+        return '';
+    }
+    while(number > 0){
+        rem = Math.floor(number % base); // 余数
+        remStack.push(rem);
+        number = Math.floor(number / base); // 商
+    }
+    while(!remStack.isEmpty()){
+        baseString += digits[remStack.pop()];
+    }
+    return baseString;
+}
+
+```
+#### 其他应用实例
+后期参考代码案例 `src/js/others`
+
+### 使用场景
+
+- 用在编程语言的编译器和内存中保存变量，方法调用等；
+- 用于浏览器历史记录；
+- 在回溯问题中，可以存储访问过的任务或路径、撤销的操作；
+- Java 和 C# 用栈来存储变量和方法调用，特别是处理递归算法时，有可能抛出一个栈溢出异常。
+
+---
+## 第五章 队列和双端队列
+
+### 队列
+
+遵循先进先出(FIFO，也称先来先服务)原则的一组有序的项
+
+```
+class Queue {
+    constructor() {
+        this.count = 0; // 控制队列大小
+        this.lowestCount = 0; // 追踪队列第一个元素
+        this.items = {}; // 保存队列内部元素
+    }
+    // 向队列尾部添加新的项
+    enqueue(element) {
+        this.items[this.count] = element;
+        this.count++;
+    }
+    // 移除队列第一项，并返回被移除的元素
+    dequeue() {
+        if(this.isEmpty()) {
+            return undefined;
+        }
+        const result = this.items[this.lowestCount];
+        delete this.items[this.lowestCount];
+        this.lowestCount++;
+        return result;
+    }
+    // 查看队列头元素
+    peek() {
+        if(this.isEmpty()) {
+            return undefined;
+        }
+        return this.items[this.lowestCount];
+    }
+    // 检查队列是否为空，是为true，否则为false
+    isEmpty() {
+        // 计算count与lowestCount之间的差值
+        return this.count - this.lowestCount === 0;
+        // return this.size() === 0;
+    }
+    // 获取队列长度
+    size() {
+        return this.count - this.lowestCount;
+    }
+    // 清空队列
+    clear() {
+        this.count = 0;
+        this.lowestCount = 0;
+        this.items = {};
+    }
+    // toString 方法打印队列
+    toString() {
+        if(this.isEmpty) {
+            return '';
+        }
+        let objString = this.items[this.lowestCount];
+        for(let i = this.lowestCount + 1; i < this.count; i++) {
+            objString = `${objString},${this.items[i]}`;
+        }
+        return objString;
+    }
+}
+
+```
+### 双端队列
+
+把栈和队列相结合的数据结构，可以同时从前端和后端添加和移除元素的特殊队列。
+
+```
+class Deque {
+    constructor() {
+        this.count = 0;
+        this.lowestCount = 0;
+        this.items = {};
+    }
+    // 在双端队列前端添加新元素
+    addFront(element) {
+        if(this.isEmpty()) {
+            // 如果队列为空，直接向队列添加元素，此时后端即前端
+            this.addBack(element);
+        } else if(this.lowestCount > 0) {
+            // 已经有元素从双端队列前端移除
+            this.lowestCount--;
+            this.items[this.lowestCount] = element;
+        } else {
+            // this.lowestCount 为 0
+            for(let i = this.count; i > 0; i++) {
+                // 把所有元素后移一位，空出第一个位置
+                this.items[i] = this.items[i-1];
+            }
+            this.count++;
+            this.lowestCount = 0;
+            this.items[0] = element;
+        }
+    }
+    // 在双端队列后端添加新元素，实现方法与Queue类的enqueue()相同
+    addBack(element) {
+        this.items[this.count] = element;
+        this.count++;
+    }
+    // 在双端队列前端移除第一个元素，实现方法与Queue类的dequeue()相同
+    removeFront() {
+        if(this.isEmpty()) {
+            return undefined;
+        }
+        const result = this.items[this.lowestCount];
+        delete this.items[this.lowestCount];
+        this.lowestCount++;
+        return result;
+    }
+    // 在双端队列后端移除第一个元素，实现方法与Stack类的pop()相同
+    removeBack() {
+        if(this.isEmpty()) {
+            return undefined;
+        }
+        this.count--;
+        const result = this.items[this.count];
+        delete this.items[this.count];
+        return result;
+    }
+    // 返回双端队列前端第一个元素，实现方法与Queue类的peek()相同
+    peekFront() {
+        if(this.isEmpty()) {
+            return undefined;
+        }
+        return this.items[this.lowestCount];
+    }
+    // 返回双端队列后端第一个元素，实现方法与Stack类的peek()相同
+    peekBack() {
+        if(this.isEmpty()) {
+            return undefined;
+        }
+        return this.items[this.count - 1];
+    }
+    // 检查对列是否为空
+    isEmpty() {
+        return this.count - this.lowestCount === 0;
+        // return this.size() === 0;
+    }
+    // 查看队列长度
+    size() {
+        return this.count - this.lowestCount;
+    }
+    // 清空队列
+    clear() {
+        this.count = 0;
+        this.lowestCount = 0;
+        this.items = {};
+    }
+    // 打印队列
+    toString() {
+        if(this.isEmpty) {
+            return '';
+        }
+        let objString = this.items[this.lowestCount];
+        for(let i = this.lowestCount + 1; i < this.count; i++) {
+            objString = `${objString},${this.items[i]}`;
+        }
+        return objString;
+    }
+}
+```
+
+### 使用队列和双端队列解决问题
+
+#### 循环队列---击鼓传花游戏
+
+> 规则
+
+所有人围成一圈，把花尽快的传递给旁边的人。某一时刻传花停止，花在谁手上，谁就退出圆圈，结束游戏。重复这个过程，直到只剩一个人(胜者)。
+
+```
+function hotPotato(elementsList, num) {
+	const queue = new Queue();
+	const elimitatedList = [];
+	for(let i = 0; i < elementsList.length; i++) {
+		queue.enqueue(elementsList[i]);
+	}
+	while(queue.size() > 1) {
+		for(let i = 0; i < num; i++) {
+			queue.enqueue(queue.dequeue());
+		}
+		elimitatedList.push(queue.dequeue());
+	}
+	return {
+		elimitated: elimitatedList,
+		winner: queue.dequeue()
+	};
+}
+```
+#### 回文检查器
+
+> 回文
+
+正反都能读通的单词、词组、数或一系列字符的序列，如：madam。
+
+> 字符串反向排序检查回文
+
+```
+let str = 'madam';
+console.log(str.split('').reverse().join('') === str);
+```
+> 使用双端队列检查回文最简单
+
+```
+function palindromeChecker(aString) {
+	if(aString && aString.length) {
+		const deque = new Deque();
+		const lowerString = aString.toLocaleLowerCase().split(' ').join('');
+		let isEqual = true;
+		let firstChar, lastChar;
+		for(let i = 0; i < aString.length; i++) {
+			deque.addBack(aString.charAt(i));
+		}
+		while(deque.size() > 1 && isEqual) {
+			firstChar = deque.removeFront();
+			lastChar = deque.removeBack();
+			if(firstChar !== lastChar) {
+				isEqual = false;
+			}
+		}
+		return isEqual;
+	} else {
+		return false;
+	}
+}
+```
+
+---
+
+## 第六章
