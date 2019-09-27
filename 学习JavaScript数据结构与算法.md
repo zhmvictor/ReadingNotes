@@ -982,3 +982,410 @@ class StackLinkedList {
 
 ---
 ## 第七章 集合
+
+### 构建集合数据结构
+
+- 无序且唯一
+- 空集是不包含任何元素的集合
+- 集合的势就是集合元素的个数
+- 集合的三个特性：确定性、互异性、无序性
+
+```
+class Set {
+    constructor() {
+        this.items = {};
+    }
+    // 检查元素是否在集合中
+    has(element) {
+//      return element in this.items;
+        return Object.prototype.hasOwnProperty.call(this.items, element);
+    }
+    // 向集合添加元素
+    add(element) {
+        if(!this.has(element)) {
+            this.items[element] = element;
+            return true;
+        }
+        return false;
+    }
+    delete(element) {
+        if(this.has(element)) {
+            delete this.items[element];
+            return true;
+        }
+        return false;
+    }
+    clear() {
+        this.items = {};
+    }
+    size() {
+        return Object.keys(this.items).length;
+    }
+    values() {
+        return Object.values(this.items);
+    }
+}
+```
+
+### 集合运算
+
+- 纯函数：没有副作用的方法和函数。纯函数不会修改当前的实例或参数，只会生成一个新的结果。
+
+#### 并集
+```
+union(otherSet) {
+    const unionSet = new Set();
+    this.values().forEach(value => unionSet.add(value));
+    otherSet.values().forEach(value => unionSet.add(value));
+    return unionSet;
+}
+```
+#### 交集
+```
+intersection(otherSet) {
+    const intersectionSet = new Set();
+    const values = this.values();
+    const otherValues = otherSet.values();
+    let biggerSet = values;
+    let smallerSet = otherValues;
+    if(otherValues.length - values.length > 0) {
+        biggerSet = otherValues;
+        smallerSet = values;
+    }
+    // 性能优化，迭代较小的集合，可以减少迭代次数，减少消耗
+    smallerSet.forEach(value => {
+        if(biggerSet.has(value)) {
+            intersectionSet.add(value);
+        }
+    });
+    return intersectionSet;
+}
+```
+
+#### 差集
+
+```
+difference(otherSet) {
+    const differenceSet = new Set();
+    this.values.forEach(value => {
+        if(!otherSet.has(value)) {
+            differenceSet.add(value);
+        }
+    });
+    return differenceSet;
+}
+```
+
+#### 子集
+```
+isSubsetOf(otherSet) {
+    if(this.size() > otherSet.size()) {
+        return false;
+    }
+    let isSubset = true;
+    /*
+     * 用 every方法代替 forEach 方法
+     * 可以实现一旦发现值不存在于 otherSet里就停止迭代，减少消耗。
+     * forEach 方法在全部循环结束之前不能控制停止循环。
+     * every 方法回调函数返回true时会继续执行，如果回调函数返回false, 循环会停止
+     */
+    this.values().every(value => {
+        if(!otherSet.has(value)) {
+            isSubset = false;
+            return false;
+        }
+        return true;
+    });
+    return isSubset;
+}
+```
+
+### ECMAScript2015 --- Set类
+
+#### 模拟并集运算
+
+```
+const union = (setA, setB) => {
+    const unionAB = new Set();
+    setA.forEach(value => unionAB.add(value));
+    setB.forEach(value => unionAB.add(value));
+    return unionAB;
+};
+```
+
+#### 模拟交集运算
+
+```
+const intersection = (setA, setB) => {
+    const intersectionSet = new Set();
+    setA.forEach(value => {
+        if(setB.has(value)) {
+            intersectionSet.add(value);
+        }
+    });
+    return intersectionSet;
+};
+```
+
+#### 模拟差集运算
+
+```
+const difference = (setA, setB) => {
+    const differenceSet = new Set();
+    setA.forEach(value => {
+        if(!setB.has(value)) {
+            differenceSet.add(value);
+        }
+    });
+    return differenceSet;
+};
+```
+
+#### 使用扩展运算符
+
+三步：
+1. 将集合转化为数组
+2. 执行需要的运算
+3. 将结果转化为集合
+
+> 并集
+
+```
+new Set([...setA, ...SetB]);
+```
+> 交集
+
+```
+new Set([...setA].filter(x => setB.has(x)));
+```
+> 差集
+
+```
+new Set([...setA].filter(x => !setB.has(x)));
+```
+
+### 多重集或袋
+
+- 集合数据结构不允许存在重复的元素
+- 多重集允许向集合中插入之前已经添加过的元素
+- 多重集可以用于计算集合中元素出现的次数(数据库系统应用广泛)
+- 为了区分集合和多重集合，多重集合可以用中括号[] 括起来，但是多重集合仍具有无序性。
+
+> 多重集合举例
+
+{1, 1, 1, 2, 3, 3} 是多重集合
+
+---
+## 第八章 字典和散列表
+
+### 字典
+
+- 集合以"[值, 值]"的形式存储元素
+- 字典以"[键, 值]"的形式存储元素
+- 字典也称映射、符号表、关联数组
+- 字典经常用来保存对象的引用地址
+
+```
+// 将对象转化为字符串的函数
+function defaultToString(item) {
+    if(item === null) {
+        return 'NULL';
+    } else if(item === undefined) {
+        return 'UNDEFINED';
+    } else if(typeof item === 'string' || item instanceof String) {
+        return `${item}`;
+    }
+    return item.toString();
+}
+// 生成键值对格式
+class ValuePair {
+    constructor(key, value) {
+        this.key = key;
+        this.value = value;
+    }
+    toString() {
+        return `[#${this.key}, ${this.value}]`;
+    }
+}
+// 字典类
+class Dictionary {
+    constructor(toStrFn = defaultToString) {
+        // 用于将对象键名转换为字符串
+        this.toStrFn = toStrFn;
+        // 存储字典中的元素， table[key] = {key, value}
+        this.table = {};
+    }
+    // 向字典中添加新元素，如果key已存在，则已存在的value会被新值覆盖
+    set(key, value) {
+        if(key != null && value != null) {
+            const tableKey = this.toStrFn(key);
+            this.table[tableKey] = new ValuePair(key, value);
+            return true;
+        }
+        return false;
+    }
+    // 根据键值在字典中查找特定的数值
+    get(key) {
+        const valuePair = this.table[this.toStrFn(key)];
+        return valuePair == null ? undefined : valuePair.value;
+    }
+    // 根据键值从字典中移除数据
+    remove(key) {
+        if(this.hasKey(key)) {
+            delete this.table[this.toStrFn(key)];
+            return true;
+        }
+        return false;
+    }
+    // 检查字典中是否存在某个键值
+    hasKey(key) {
+        return this.table[this.toStrFn(key)] != null;
+    }
+    // 清空字典
+    clear() {
+        this.table = {};
+    }
+    // 返回字典中包含值的数量
+    size() {
+        return Object.keys(this.table).length;
+    }
+    // 检查字典是否为空
+    isEmpty() {
+        return this.size() === 0;
+    }
+    // 将字典包含的所有键名以数组的形式返回
+    keys() {
+        return this.keyValues().map(valuePair => valuePair.key);
+    }
+    // 将字典包含的所有数值以数组的形式返回
+    values() {
+        return this.keyValues().map(valuePair => valuePair.value);
+    }
+    // 返回字典中所有[键, 值]对
+    keyValues() {
+//      return Object.values(this.table);
+        // 如果不是所有浏览器都支持 Object.values 方法
+        const valuePairs = [];
+        for(const k in this.table) {
+            if(this.hasKey(k)) {
+                valuePairs.push(this.table[k]);
+            }
+        }
+        return valuePairs;
+    }
+    // 迭代字典中所有的键值对。
+    // callbackFn有两个参数：key 和 value
+    // 该方法在回调函数返回false时被中止
+    // 与Array 类中的every 相似
+    forEach(callbackFn) {
+        const valuePairs = this.keyValues();
+        for(let i = 0; i < valuePairs.length; i++) {
+            const result = callbackFn(valuePairs[i].key, valuePairs[i].value);
+            if(result === false) {
+                break;
+            }
+        }
+    }
+    toString() {
+        if(this.isEmpty()) {
+            return '';
+        }
+        const valuePairs = this.keyValues();
+        let objString = `${valuePairs[0].toString()}`;
+        for(let i = 1; i < valuePairs.length; i++) {
+            objString = `${objString},${valuePairs[i].toString()}`;
+        }
+        return objString;
+    }
+}
+```
+
+### 散列表  HashMap/HashTable
+
+```
+// 将对象转化为字符串的函数
+function defaultToString(item) {
+    if(item === null) {
+        return 'NULL';
+    } else if(item === undefined) {
+        return 'UNDEFINED';
+    } else if(typeof item === 'string' || item instanceof String) {
+        return `${item}`;
+    }
+    return item.toString();
+}
+// 生成键值对格式
+class ValuePair {
+    constructor(key, value) {
+        this.key = key;
+        this.value = value;
+    }
+    toString() {
+        return `[#${this.key}, ${this.value}]`;
+    }
+}
+// 散列表
+class HashTable {
+    constructor(toStrFn = defaultToString) {
+        this.toStrFn = toStrFn;
+        this.table = {};
+    }
+    // 散列函数
+    loseloseHashCode(key) {
+        if(typeof key === 'number') {
+            return key;
+        }
+        const tableKey = this.toStrFn(key);
+        let hash = 0;
+        for(let i = 0; i < tableKey.length; i++) {
+            hash += tableKey.charCodeAt(i);
+        }
+        return hash % 37;
+    }
+    hashCode(key) {
+        return this.loseloseHashCode(key);
+    }
+    // 向散列表中添加新的项/更新散列表
+    put(key, value) {
+        if(key != null && value != null) {
+            const position = this.hashCode(key);
+            this.table[position] = new ValuePair(key, value);
+            return true;
+        }
+        return false;
+    }
+    // 返回根据键值检索到的特定的值
+    get(key) {
+        const valuePair = this.table[this.hashCode(key)];
+        return valuePair == null ? undefined : valuePair.value;
+    }
+    // 根据键值从散列表中移除值
+    remove(key) {
+        const hash = this.hashCode(key);
+        const valuePair = this.table[hash];
+        if(valuePair != null) {
+            delete this.table[hash];
+            return true;
+        }
+        return false;
+    }
+    // 返回字典中包含值的数量
+    size() {
+        return Object.keys(this.table).length;
+    }
+    isEmpty() {
+        return this.size() === 0;
+    }
+    toString() {
+        if(this.isEmpty()) {
+            return '';
+        }
+        const keys = Object.keys(this.table);
+        let objString = `{${keys[0]} => ${this.table[keys[0]].toString()}}`;
+        for(let i = 1; i < keys.length; i++) {
+            objString = `${objString}, {${keys[i]} => ${this.table[keys[i]].toString()}}`;
+        }
+        return objString;
+    }
+}
+```
