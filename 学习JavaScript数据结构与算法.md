@@ -1302,6 +1302,13 @@ class Dictionary {
 
 ### 散列表  HashMap/HashTable
 
+-  HashMap 类是 Dictionary 类的一种散列表实现方式
+-  散列算法作用是尽可能快的在数据结构中找到一个值
+-  JavaScript 语言内部就是使用散列来表示每个对象
+-  散列表（Hash table，也叫哈希表），是根据关键码值(Key value)而直接进行访问的数据结构。也就是说，它通过把关键码值映射到表中一个位置来访问记录，以加快查找的速度。这个映射函数叫做散列函数，存放记录的数组叫做散列表
+-  散列函数是把任意长度的输入通过散列算法变换成固定长度的输出，这个输出是散列值，不同的输入可能对应相同的输出，因此可能会出现“冲突”
+-  散列表是存放散列值以及记录的数组，散列函数的作用就是将输入值映射到散列表，从而根据散列值在散列表对应的位置访问到数据结构(记录)
+
 ```
 // 将对象转化为字符串的函数
 function defaultToString(item) {
@@ -1389,3 +1396,191 @@ class HashTable {
     }
 }
 ```
+
+### 散列表和散列集合
+
+- 散列集合由集合构成，与散列表的不同之处在于散列集合只插入值而没有键，并且散列集合只存储不重复的唯一值。
+
+### 处理散列表的冲突
+
+1. 分离链接(链地址法)
+2. 线性探查法
+3. 双散列法
+
+#### 分离链接
+
+为散列表的每一个位置创建一个链表并将元素存储在里面
+
+> 重写 put、get、remove 方法
+
+```
+put(key, value) {
+    if(key != null && value != null) {
+        const position = this.hashCode(key);
+        if(this.table[position] == null) {
+            this.table[position] = new LinkedList();
+        }
+        this.table[position].push(new ValuePair(key, value));
+        return true;
+    }
+    return false;
+}
+```
+```
+get(key) {
+    const position = this.hashCode(key);
+    const linkedList = this.table[position];
+    if(linkedList != null && !linkedList.isEmpty()) {
+        let current = linkedList.getHead();
+        while(current != null) {
+            if(current.element.key === key) {
+                return current.element.value;
+            }
+            current = current.next;
+        }
+    }
+    return undefined;
+}
+```
+```
+remove(key) {
+    const position = this.hashCode(key);
+    const linkedList = this.table[position];
+    if(linkedList != null && !linkedList.isEmpty()) {
+        let current = linkedList.getHead();
+        while(current != null) {
+            if(current.element.key === key) {
+                linkedList.remove(current.element);
+                if(linkedList.isEmpty()) {
+                    delete this.table[position];
+                }
+                return true;
+            }
+            current = current.next;
+        }
+    }
+    return false;
+}
+```
+
+#### 线性探查
+
+将元素直接存储到表中
+
+> 重写 put、get、remove 方法
+
+> put
+
+向表中添加元素，首先在表中索引 position 位置，如果该位置已经被占据，就尝试 position+1 的位置，以此类推，直到在表中找到空闲的位置，再将元素添加进去。
+
+```
+put(key, value) {
+    if(key != null && value != null) {
+        const position = this.hashCode(key);
+        if(this.table[position] == null) {
+            this.table[position] = new ValuePair(key, value);
+        } else {
+            let index = position + 1;
+            while(this.table[index] != null) {
+                index++;
+            }
+            this.table[index] = new ValuePair(key, value);
+        }
+        return true;
+    }
+    return false;
+}
+```
+
+> get
+
+```
+get(key) {
+    const position = this.hashCode(key);
+    if(this.table[position] != null) {
+        if(thia.table[position].key === key) {
+            return thia.table[position].value;
+        }
+        let index = position + 1;
+        while(this.table[index] != null && this.table[index].key !== key) {
+            index++;
+        }
+        if(this.table[index] != null && this.table[index].key === key) {
+            return this.table[index].value;
+        }
+    }
+    return undefined;
+}
+```
+
+> remove
+
+```
+verifyRemoveSideEffect(key, removedPosition) {
+    const hash = this.hashCode(key);
+    let index = removedPosition + 1;
+    while(this.table[index] != null) {
+        const posHash = this.hashCode(this.table[index].key);
+        if(posHash <= hash || posHash <= removedPosition) {
+            this.table[removedPosition] = this.table[index];
+            delete this.table[index];
+            removedPosition = index;
+        }
+        index++;
+    }
+}
+```
+
+```
+remove(key) {
+    const position = this.hashCode(key);
+    if(this.table[position] != null) {
+        if(this.table[position].key === key) {
+            delete this.table[position];
+            this.verifyRemovedSiedeEffect(key, position);
+            return true;
+        }
+        let index = position + 1;
+        while(this.table[index] != null && this.table[index].key !== key) {
+            index++;
+        }
+        if(this.table[index] != null && this.table[index].key === key) {
+            delete this.table[index];
+            this.verifyRemovedSiedeEffect(key, index);
+            return true;
+        }
+    }
+    return false;
+}
+```
+
+
+#### djb2 散列函数
+
+- 比lose lose 更好的散列函数
+- 最受社区推崇的散列函数之一
+
+```
+djb2HashCode(key) {
+    const tableKey = this.toStrFn(key);
+    // 初始化 hash 变量，大多数实现为 5381
+    let hash = 5381;
+    for(let i = 0; i < tableKey.length; i++) {
+        hash = (hash * 33) + tableKey.charCodeAt(i);
+    }
+    return hash % 1013;
+}
+```
+
+### ES2015 Map类、WeakMap、WeakSet
+
+- WeakMap、WeakSet是Map、Set的弱化版本
+- Map 和 Set 与弱化版本的区别：
+    - WeakMap 和 WeakSet 没有entries、keys、values方法
+    - 只能用对象作为键
+- 弱化版本没有强引用的键，使 JavaScript 的垃圾回收器可以从中清除整个入口
+- 弱化版本必须使用键才能取出值
+
+---
+
+## 第九章 递归
