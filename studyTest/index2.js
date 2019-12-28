@@ -1,3 +1,4 @@
+// 你不知道的JavaScript（上卷） 第二部分 5.1.2--属性设置和屏蔽
 function Father(name) {
   this.name = name;
 }

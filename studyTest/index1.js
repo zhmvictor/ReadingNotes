@@ -1,5 +1,6 @@
 // 满足条件2
 'use strict';
+// 你不知道的JavaScript（上卷） 第二部分 5.1.2--属性设置和屏蔽
 let obj = Object.defineProperty({}, 'foo', {
   value: 2,
   writable: false,
